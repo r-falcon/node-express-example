@@ -1,0 +1,153 @@
+1.建立项目所需文件夹
+  public 静态资源
+  model 数据库操作
+  route 路由
+  views 模板
+2.初始化项目描述文件
+  npm init -y 
+3.下载项目所需第三方模块
+  npm install express mongoose art-template express-art-template
+4.创建网站服务器
+  在app.js文件中
+5.构建模板化路由
+  和之前案例一样，分别写home.js和admin.js路由
+6.构建播客管理页面模板
+  渲染登录模板：
+  // 告诉express框架模板所在的位置
+  app.set('views',path.join(__dirname,'views'))
+  // 告诉express框架模板的默认后缀是什么
+  app.set('view engine','art')
+  // 当渲染后缀为art的模板时，所使用的模板引擎是什么
+  app.engine('art',require('express-art-template'))
+
+  admin.get('/login',(req,res) => {
+    // res.send('欢迎来到博客管理页面')
+    // 渲染登录模板
+    res.render('admin/login')
+  })
+7.相对路径
+  模板中的相对路径是相对地址栏中的请求路径的（相对路径改为绝对路径,路径前加 /admin[例子，具体看哪个文件夹]）
+  结论：在模板中外链资源要使用绝对路径，因为是浏览器解析，相对路径变绝对路径在路径前面加/
+8.把页面中的公共部分抽离出来
+  注：{{include '相对路径'}} 因为include后面的路径是模板引擎解析，所以子模板的相对路径相对的就是当前文件
+  然后用include引入到对应文件中： {{include './common/aside.art'}}
+9.把网页的公共骨架抽离到layout.art中，然后通过挖坑的方式引入内容
+  挖坑： {{block 'script'}}{{/block}}
+  使用：
+    {{extend './common/layout.art'}}
+    {{block 'script'}}
+      <script src="/admin/lib/ckeditor5/ckeditor.js"></script>
+    {{/block}}
+10.实现用户的登录功能
+  (1)创建用户集合，初始化用户
+      连接数据库
+      创建用户集合
+      初始化用户
+  (2)为登录表单项设置请求地址、请求方式以及表单项name属性
+  (3)当用户点击登录按钮时，客户端验证用户是否填写了登录表单
+  (4)如果其中一项没有输入，阻止表单提交
+  (5)服务器端接收请求参数，验证用户是否填写了登录表单
+  (6)如果其中一项没有输入，为客户端做出响应，阻止程序向下执行
+  (7)根据邮箱地址查询用户信息
+  (8)如果用户不存在，为客户端做出响应，阻止程序向下执行
+  (9)如果用户存在，将用户名和密码进行对比
+  (10)对比成功，登录成功
+  (11)对比失败，登录失败
+11.密码加密 bcrypt
+  哈希加密：单向加密，只能加密，不能解密
+    (1)导入bcrypt模块
+    const bcrypt = require('bcrypt')
+    (2)生成随机字符串gen => generate生成salt盐.默认为我10，数值越大，复杂度越高
+    let salt = await bcrypt.genSalt(10)
+    (3)使用随机字符串对密码进行加密
+    let pass = await bcrypt.hash('明文密码',salt)
+    (4)密码比对
+    let isEqual = await bcrypt.compare('明文密码','加密密码')
+  安装bcrypt第三方模块：
+    【注】需提前安装好python 2.x;node-gyp(npm install -g node-gyp);windows-build-tools(npm install --global --production windows-build-tools)
+12.cookie与session(在Google控制台的application中可查看)
+  cookie：浏览器在电脑硬盘中开辟的一块空间，主要供服务器存储数据
+    cookie中的数据是以域名的形式进行区分的
+    cookie中的数据是有过期时间的，超过时间数据会被浏览器自动删除
+    cookie中的数据会随着请求自动发送到服务器端
+  session：实际上是一个对象，存储在服务器端的内存中，在session对象中也可以存储数据，每一条数据都有一个session作为唯一标识
+  (1)在node.js中需要借助express-session实现session功能
+    const session = require('express-session')
+    app.use(session({secret:'secret key'}))
+  【注】把好几个地方都用到的公共数据，用户名什么的，放在locals里面
+13.页面访问拦截
+  需要用到中间件：有顺序，从上到下一次执行(有顺序，注意在代码中的位置)
+  拦截请求，判断用户登录状态，若登录，路由放行，否则，路由重定向到登录页面
+  中间件规范路由，简化格式
+14.新增用户
+  (1)为用户列表页面的新增用户按钮添加链接
+  (2)添加一个链接对应的路由，在路由处理函数中渲染新增用户模板
+  (3)为新增用户表单指定请求地址、请求方式、为表单项添加name属性
+  (4)增加实现添加用户的功能路由
+  (5)接收到客户端传递过来的请求参数
+  (6)对请求参数的格式进行验证
+  (7)验证当前要注册的邮箱地址是否已经注册
+  (8)注册，登录
+  (9)未注册，将用户密码进行加密，将用户信息添加到数据库，重定向到用户列表页
+15.Joi JavaScript对象的规则描述语言和验证器(有旧版和新版使用语法差异)
+16.进行代码的简化，将添加用户的验证信息等处理移入到model的user.js模块 
+17.数据分页(当前页，每页显示的条数，总页数)
+18.修改用户
+  (1)将要修改的用户ID传递到服务器端
+  (2)建立用户信息修改功能对应的路由
+  (3)接受客户端表单传递过来的请求参数
+  (4)根据id查询用户信息，并将客户端传递过来的密码和数据库中的密码进行对比
+  (5)比对失败，直接对客户端做出响应
+  (6)比对成功，将用户信息更新到数据库中
+19.删除用户处理
+  (1)在确认删除框中添加隐藏域用于存储要删除用户的ID值
+  (2)为删除按钮添加自定义属性用以存储要删除用户的ID值
+  (3)为删除按钮添加点击事件，在点击事件处理函数中获取自定义属性中存储的ID值并将ID值存储在表单的隐藏域中
+  (4)为删除按钮表单添加提交地址以及提交方式
+  (5)在服务器端建立删除功能路由
+  (6)接收客户端传递过来的id参数
+  (7)根据id删除用户
+20.做文章管理
+  (1)渲染文章列表和文章编辑页面
+  (2)创建侧边栏相应的链接和active切换
+  (3)创建文章集合和集合规则
+  (4)使用formidable模块解决文件上传接收问题
+  (5)使用readFile解决图片在网页上的展示问题
+  (6)将add页的新增文章添加到数据库，并在文章列表页展示出来
+  (7)处理文章展示的作者展示(数据关联)和日期显示(dateformat)
+21.MongoDB数据库添加账号
+  (1)以系统管理员方式运行powershell
+  (2)连接数据库mongo
+  (3)查看数据库show dbs
+  (4)切换到admin数据库 use admin
+  (5)创建超级管理员账户 db.createUser()
+  (6)切换到blog数据库 use blog
+  (7)创建普通账号 db.createUser()
+  (8)卸载mongodb服务
+    停止服务：net stop mongodb
+    卸载：mongob --remove
+  (9)创建mongodb服务(注意命令)
+  (10)启动mongodb服务 net start mongodb
+  (11)在项目中使用账号连接数据库
+    mongoose.connect('mongodb://user:pass@localhost:port/datebase')  
+22.区分开发环境和生产环境(设置环境变量)  shift+鼠标右键  （以管理员运行powershell）
+23.第三方模块config
+ (1)使用npm install config命令下载模块
+ (2)在项目的根目录下新建config文件夹
+ (3)在config文件夹下面新建default.json\development.json\production.json
+ (4)在项目中通过require方法，将模块进行导入
+ (5)使用模块内部提供的get方法获取配置信息
+24.将敏感信息存储在环境变量中
+  (1)在config文件夹建立custom-environment-variables.json文件
+  (2)配置项属性的值填写系统环境变量的名字
+  (3)项目运行时config模块查找系统环境变量，并读取其值作为当前配置项属于的值
+25.建立blog文章详情展示页（首页和详情页），并把路径改为绝对路径（加 ‘/home’）
+26.建立文章评论
+  (1)创建评论集合
+  (2)判断用户是否登录，如果登录，在允许用户提交评论表单
+  (3)在服务器端创建文章评论功能对应的路由
+  (4)在路由请求处理函数中接受客户端传递过来的评论信息
+  (5)将评论信息存储在评论集合
+  (6)将页面重定向回文章详情页
+  (7)在文章详情页面路由中获取文章评论信息并展示在页面中
+27.自己可以完成文章的分页和删除
